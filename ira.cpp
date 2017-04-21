@@ -5,37 +5,50 @@
 #include <unistd.h>
 
 
-int getFileStatus(){
+int getFileStatus(const char* file){
     struct stat buf;
-    int s = stat("/srv/www/htdocs/cPlus/testdata.txt",&buf);
-    std::cout << buf.st_atime << "\n";
-    std::cout << buf.st_uid << "\n";
-    std::cout << buf.st_mtime << "\n";
-    std::cout << buf.st_ctime << "\n";
-    return 1;
+    int s = stat(file,&buf);
+//    std::cout << buf.st_atime << "\n";
+//    std::cout << buf.st_uid << "\n";
+//    std::cout << buf.st_mtime << "\n";
+//    std::cout << buf.st_ctime << "\n";
+    if(S_ISDIR(buf.st_mode)){
+        return 1;
+    }else{
+        return 0;
+    }
 }
-int scanDir(std::string dir){
+int scanDir(const char* dir){
+    std::string illegal = "..";
+    std::string illegal2 = ".";
+    std::cout << "CWD: " << dir << "\n";
     int changeError = chdir(dir);
     if(!changeError){
         struct dirent **nameList;
         int n = scandir("./",&nameList,NULL,alphasort);
-        std::cout << n << "\n";
         if(!n){
             std::cout << "No Files\n";
+            return false;
         }else{
-            std::cout << nameList << "\n";
-                while(n--){
-                    //std::cout << nameList[n]->d_name << "\n";
+            while(n--){
+                if(nameList[n]->d_name == illegal || nameList[n]->d_name == illegal2){
+                    continue;
+                }
+                int dirCheck = getFileStatus(nameList[n]->d_name);
+                if(dirCheck){
+                    scanDir(nameList[n]->d_name);
+                }else{
+                    continue;
                 }
             }
-        }else{
-            std::cout << "There was an error changing directories\n";
         }
+    }else{
+        std::cout << "There was an error changing directories\n";
+    }
     return 1;    
 }
 
 int main(){
-    scanDir("/srv/www/htdocs/");
-    getFileStatus();
+    scanDir("/srv/www/htdocs/vendor");
     return 0;
 }
